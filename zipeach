@@ -1,0 +1,73 @@
+#! /bin/python3
+
+# zips all files in a directory into individual archives
+
+import argparse
+import os
+import zipfile
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(
+        prog="zipeach",
+        description="zips all files in a directory into individual archives")
+    
+    parser.add_argument("dir", nargs="?", default=".",
+                        help="working directory")
+    
+    parser.add_argument("-d", "--dirs", action="store_true",
+                         help="also zip directories")
+
+    parser.add_argument("-s", "--symlinks", action="store_true",
+                         help="follow symlinks")
+
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="enable verbose output")
+    
+    parser.add_argument("-x", "--delete", action="store_true",
+                         help="delete file after zipping")
+                
+    args = parser.parse_args()
+
+    for file in os.listdir(args.dir):
+
+        filePath = os.path.join(args.dir, file)
+        fileName, fileExt = os.path.splitext(file)
+    
+        if fileExt == ".zip":
+            if args.verbose:
+                print(f"skipping zip {file}")
+            continue
+
+        if (not args.symlinks) and os.path.islink(filePath):
+            if args.verbose:
+                print(f"skipping symlink {file}")
+            continue
+
+        if (not args.dirs) and os.path.isdir(filePath):
+            if args.verbose:
+                print(f"skipping directory {file}")
+            continue
+
+        outFilePath = os.path.join(args.dir, fileName + ".zip")
+
+        if args.verbose:
+            print(f"zipping {file}...", end='')
+
+        with zipfile.ZipFile(outFilePath, 'w', zipfile.ZIP_DEFLATED) as zip:
+            
+            try:
+                zip.write(filePath, fileName)
+
+                if args.verbose:
+                    print("done")
+
+                if args.delete:
+                    os.remove(filePath)
+
+                    if args.verbose:
+                        print(f"deleted {file}")
+            
+            except Exception as e:
+                if args.verbose:
+                    print(f"error {str(e)}")
